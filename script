@@ -1,0 +1,118 @@
+#!/bin/bash
+
+#1
+test_dir=$HOME/test
+if [ ! -d "$test_dir" ]
+then
+	mkdir $test_dir
+fi
+
+#2
+echo -e "directories:\n$(find /etc -maxdepth 1 -name ".*" -o -name "*" -type d)\n" > $test_dir/list
+echo -e "files:\n$(find /etc -maxdepth 1 -name ".*" -o -name "*" -type f)\n" >> $test_dir/list
+
+#3
+echo -e "directories: $(find /etc -maxdepth 1 -name ".*" -o -name "*" -type d | grep -E "/etc/+" | wc -l)\n" >> $test_dir/list
+echo -e "hidden files: $(find /etc -maxdepth 1 -name ".*" -type f | wc -l)\n" >> $test_dir/list
+
+#4
+links_dir=$test_dir/links
+if [ ! -d "$links_dir" ]
+then
+	mkdir $links_dir
+fi
+
+#5
+ln -f $test_dir/list $links_dir/list_hlink
+
+#6
+ln -sf $test_dir/list $links_dir/list_slink
+
+#7
+echo "count of names (list_hlink): " $(ls -li $links_dir | grep -E "list_hlink" | awk '{print $3}')
+echo "count of names (list): " $(ls -li $test_dir | grep -E "list" | awk '{print $3}')
+echo "count of names (list_slink): " $(ls -li $links_dir | grep -E "list_slink" | awk '{print $3}')
+
+#8
+echo "count of lines: " $(wc -l $test_dir/list) >> $links_dir/list_hlink
+
+#9
+cmp -s $links_dir/list_hlink $links_dir/list_slink && echo "list_hlink == list_slink"
+
+#10
+mv $test_dir/list $test_dir/list1
+
+#11
+cmp -s $links_dir/list_hlink $links_dir/list_slink || echo "list_hlink != list_slink"
+
+#12
+ln -f $test_dir/list1 $HOME/list_link
+
+#13
+find /etc -type f -name "*.conf" 2>/dev/null > $HOME/list_conf
+
+#14
+find /etc -type d -name "*.d" 2>/dev/null > $HOME/list_d
+
+#15
+cat $HOME/list_conf $HOME/list_d > $HOME/list_conf_d
+
+#16
+sub_dir=$test_dir/.sub
+if [ ! -d "$sub_dir" ]
+then
+	mkdir $sub_dir
+fi
+
+#17
+cp $HOME/list_conf_d $test_dir/.sub/
+
+#18
+cp -b $HOME/list_conf_d $test_dir/.sub/
+
+#19
+find $test_dir
+
+#20
+man man > $HOME/man.txt
+
+#21
+cd $HOME
+split -b 1k $HOME/man.txt
+
+#22
+man_dir=$HOME/man.dir
+if [ ! -d "$man_dir" ]
+then
+    	mkdir $man_dir
+fi
+
+#23
+mv $HOME/??? man.dir/
+
+#24
+echo "" > $man_dir/entire_man.txt
+for file in $man_dir/*
+do
+	cat 2>/dev/null $file >> $man_dir/entire_man.txt
+done
+
+#25
+cmp -s $HOME/man.txt $man_dir/entire_man.txt || echo "($HOME)man.txt != ($man_dir)entire_man.txt"
+
+#26
+sed -i '1i beginning' $HOME/man.txt
+sed -i '$a end' $HOME/man.txt
+
+#27
+diff -u $HOME/man.txt $man_dir/entire_man.txt > $HOME/man_dif.txt
+
+#28
+mv $HOME/man_dif.txt $man_dir/
+
+#29
+cd /
+patch -p0 < $man_dir/man_dif.txt
+
+#30
+cmp -s $HOME/man.txt $man_dir/entire_man.txt && echo "($HOME)man.txt == ($man_dir)entire_man.txt"
